@@ -4426,10 +4426,18 @@ class _TestTorchMixin(object):
 
         # randperm of 0 elements is an empty tensor
         res1 = torch.randperm(0)
-        res2 = torch.LongTensor(5)
+        res2 = torch.LongTensor()
         torch.randperm(0, out=res2)
         self.assertEqual(res1.numel(), 0)
         self.assertEqual(res2.numel(), 0)
+
+        # Test exceptions when n is too large for a floating point type
+        for res, small_n, large_n in ((torch.HalfTensor(), 2**11 + 1, 2**11 + 2),
+                                      (torch.FloatTensor(), 2**24 + 1, 2**24 + 2),
+                                      (torch.DoubleTensor(), 2**25,  # 2**53 + 1 is too large to run
+                                       2**53 + 2)):
+            torch.randperm(small_n, out=res)  # No exception expected
+            self.assertRaises(RuntimeError, lambda: torch.randperm(large_n, out=res))
 
     def test_random(self):
         # This test is flaky with p<=(2/(ub-lb))^200=6e-36
